@@ -23,6 +23,7 @@ RUN apt-get update && apt-get install -y \
     wget \
     git \
     sudo \
+    zstd \
     python3 \
     python3-pip \
     python3-venv
