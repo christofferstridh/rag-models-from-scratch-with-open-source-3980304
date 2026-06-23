@@ -1,0 +1,70 @@
+import os
+from pydoc import doc
+import sys
+import pytesseract
+from config import Config
+from ollama import embed, embeddings
+from nltk.tokenize import sent_tokenize
+from database_connect_embeddings import get_psql_session, TextEmbedding
+from sentence_transformers import SentenceTransformer
+import fitz # från pymupdf
+import pytesseract
+from pdf2image import convert_from_path
+from PIL import Image
+
+def populate_vector_db(folder_path):
+    session = get_psql_session()
+    TextEmbedding.truncate(session)
+    session.commit
+    model = SentenceTransformer(Config.EMBEDDING_MODEL_NAME, device="cuda")
+    for file_name in os.listdir(folder_path):        
+        try:
+
+            if file_name.endswith('.txt'):
+                file_path = os.path.join(folder_path, file_name)
+                with open(file_path, 'r', encoding='utf-8') as f:
+                    content = f.read()
+                    save_vector(session, model, file_name, content)
+                
+            if file_name.endswith('.pdf'):
+                file_path = os.path.join(folder_path, file_name)           
+                with fitz.open(file_path) as f:
+                    content = ""
+                    for page in f:
+                        content += page.get_text() + "\n"
+                    save_vector(session, model, file_name, content)
+            
+            if file_name.endswith((".png", ".jpg", ".jpeg", ".tiff", ".bmp", ".gif")):
+                file_path = os.path.join(folder_path, file_name)           
+                with fitz.open(file_path) as f:
+                    img = Image.open(file_path)
+                    content = pytesseract.image_to_string(img)
+                    save_vector(session, model, file_name, content)
+
+        except Exception as e:
+                    print(f"Error processing {file_name}: {str(e)}")
+                    #session.rollback()
+                    continue
+    session.close()
+    return
+
+def save_vector(session, model, file_name, content):
+    sentences = sent_tokenize(content)
+
+                    #embeddings = embed(model='nomic-embed-text', input=sentences)['embeddings']
+    embeddings = model.encode(sentences)
+    for i, (embedding, sentence) in enumerate(zip(embeddings, sentences)):
+        new_embedding = TextEmbedding(embedding=embedding, content=sentence, file_name=file_name, sentence_number=i+1)
+        session.add(new_embedding)    
+    session.commit()
+    print(f"Inserted embeddings for {file_name} into the database.")
+
+if __name__=="__main__":
+
+    folderpath = "all_articles"
+    
+    if len(sys.argv) > 1:
+        folderpath = sys.argv[1]
+    
+
+    populate_vector_db("../../" + folderpath)
