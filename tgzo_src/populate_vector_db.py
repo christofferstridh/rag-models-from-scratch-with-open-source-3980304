@@ -3,7 +3,7 @@ from pydoc import doc
 import sys
 import pytesseract
 from config import Config
-from ollama import embed, embeddings
+import ollama
 from nltk.tokenize import sent_tokenize
 from database_connect_embeddings import get_psql_session, TextEmbedding
 from sentence_transformers import SentenceTransformer
@@ -12,11 +12,30 @@ import pytesseract
 from pdf2image import convert_from_path
 from PIL import Image
 
+# Istället för SentenceTransformer, skapar vi en enkel funktion/klass
+class OllamaEmbeddingWrapper:
+    def __init__(self, model_name):
+        self.model_name = model_name
+
+    def encode(self, sentences, **kwargs):
+        # Om det är en singel sträng, gör om till lista
+        if isinstance(sentences, str):
+            sentences = [sentences]
+
+        embeddings = []
+        for sentence in sentences:
+            response = ollama.embeddings(model=self.model_name, prompt=sentence)
+            embeddings.append(response['embedding'])
+
+        return embeddings
+
+
 def populate_vector_db(folder_path):
     session = get_psql_session()
     TextEmbedding.truncate(session)
     session.commit
-    model = SentenceTransformer(Config.EMBEDDING_MODEL_NAME, device="cuda")
+    #model = SentenceTransformer(Config.EMBEDDING_MODEL_NAME, device="cuda")
+    model = OllamaEmbeddingWrapper("ryanshillington/Qwen3-Embedding-0.6B:latest")
     for file_name in os.listdir(folder_path):        
         try:
 
@@ -67,4 +86,4 @@ if __name__=="__main__":
         folderpath = sys.argv[1]
     
 
-    populate_vector_db("../../" + folderpath)
+    populate_vector_db("./"+folderpath)

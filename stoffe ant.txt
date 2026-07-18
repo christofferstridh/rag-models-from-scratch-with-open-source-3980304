@@ -1,2 +1,20 @@
 starta postgres:
 sudo service postgresql start
+
+det var ngt med gpun o cuda o pytorch, tror jag behövde nedgradera pyton senast o ladda ner allt igen i ny venv
+    men nu verkar det funka direkt, tror jag körde 3.14 förra gången också men kanske inte
+
+gjode om så att jag inte laddar ngt alls från huggingface, allt förväntas finnas nedladdat i ollama
+
+körde pipreqs . för att skapa en requirements.txt o sen pip install -r requirements.txt
+det funkade inte helt, fick bygga om en del själv, behövde även installera postgres source för att dess psy lib som connectar ska kunna byggas från source  
+
+bytte mistral till annat eftersom att den var för tung, bytte till qwen och deepseek - ska testa båda - de ska även fatta svenska
+modelllistan är nu 
+ollama list
+NAME                                           ID              SIZE      MODIFIED       
+qwen2.5:3b                                     357c53fb659c    1.9 GB    14 minutes ago    
+deepseek-r1:1.5b                               e0979632db5a    1.1 GB    18 minutes ago    
+phi4-mini:latest                               78fad5d182a7    2.5 GB    24 hours ago      
+mistral:7b-instruct-q4_K_M                     1a85656b534f    4.4 GB    26 hours ago      
+ryanshillington/Qwen3-Embedding-0.6B:latest    2092cdece376    1.2 GB    26 hours ago    

@@ -4,3 +4,7 @@ node_modules
 npm-debug.log
 
 .devcontainer/devcontainer.json
+
+*/all_articles
+
+*/__pycache__

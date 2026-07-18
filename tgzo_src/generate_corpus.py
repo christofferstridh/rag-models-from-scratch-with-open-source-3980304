@@ -6,7 +6,7 @@ def sanitize_filename(filename):
     return re.sub(r'[^a-zA-Z0-9]', "_", filename)
 
 
-def generate_corpus(search_term="human rights", num_articles=1000, output_dir="../../all_articles"):
+def generate_corpus(search_term="human rights", num_articles=1000, output_dir="all_articles"):
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
 

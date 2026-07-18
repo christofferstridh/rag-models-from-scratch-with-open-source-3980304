@@ -16,6 +16,8 @@
 
 # sudo emacs /etc/postgresql/16/main/pg_hba.conf
 
+#sätt den där all-raden till trust för inget lösen
+
 #CREATE EXTENSION vector;
 #CREATE DATABASE text_embeddings OWNER postgres;
 #GRANT ALL PRIVILEGES ON DATABASE text_embeddings TO postgres;

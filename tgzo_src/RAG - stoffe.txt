@@ -1,0 +1,13 @@
+RAG
+	få tillbaka samma genom att
+		själv försöka komma ihåg stegen och gå igenom dem, kolla min egen lösning när jag kör fast
+			få den körbar igen
+			
+			se om jag kan köra den som app i min telefon
+			
+				går det att splitta ut så att flera appar använder samma chat-modell?
+
+	ta bort den svenska och välj annan muktilang, trol den kinesiska
+
+	gör klart kursen
+

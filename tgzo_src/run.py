@@ -9,6 +9,7 @@ from sentence_transformers import SentenceTransformer
 from config import Config
 from database_connect_embeddings import TextEmbedding, get_psql_session
 from retrieve_vector_data import search_embeddings
+from populate_vector_db import OllamaEmbeddingWrapper
 
 
 def is_unique_to_window(existing_matches, current_match, group_window_size=5):
@@ -122,10 +123,19 @@ def get_surrounding_sentences(entry_ids, file_names, group_window_size, session)
 def search_by_query(query, num_matches=5, group_window_size=5):
 
     session = get_psql_session()
-    model = SentenceTransformer(Config.EMBEDDING_MODEL_NAME, device='cuda')
-    query_embedding = model.encode(query)
+    #model = SentenceTransformer(Config.EMBEDDING_MODEL_NAME, device='cuda')
+    model = OllamaEmbeddingWrapper("ryanshillington/Qwen3-Embedding-0.6B:latest")
+    query_embedding = model.encode(query)[0]
+    
     del model
     gc.collect()
+
+
+    # just nu är max 1 modell aktiv genom export i bashrc men man kan ockås Tvinga Ollama att omedelbart kasta ut embedding-modellen ur VRAM
+    #ollama.generate(
+    #model='ryanshillington/Qwen3-Embedding-0.6B:latest', 
+    #keep_alive=0
+    #)
 
     search_results = search_embeddings(query_embedding, session=session, limit=num_matches * (2*group_window_size + 1) )
     filtered_matches = get_filtered_matches(search_results)
@@ -168,7 +178,8 @@ Question:
 {query}
 """
     response = chat(
-        model='mistral:7b-instruct-q4_K_M',
+        #model='mistral:7b-instruct-q4_K_M',
+        model='deepseek-r1:1.5b',
         messages=[{'role': 'user', 'content': prompt}]
     )
 
