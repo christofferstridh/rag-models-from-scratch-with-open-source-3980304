@@ -35,7 +35,7 @@ def populate_vector_db(folder_path):
     TextEmbedding.truncate(session)
     session.commit
     #model = SentenceTransformer(Config.EMBEDDING_MODEL_NAME, device="cuda")
-    model = OllamaEmbeddingWrapper("ryanshillington/Qwen3-Embedding-0.6B:latest")
+    model = OllamaEmbeddingWrapper(Config.EMBEDDING_MODEL_NAME)
     for file_name in os.listdir(folder_path):        
         try:
 

@@ -2,6 +2,7 @@
 import gc
 import sys
 import sys
+import time
 
 from ollama import chat
 from sentence_transformers import SentenceTransformer
@@ -124,7 +125,7 @@ def search_by_query(query, num_matches=5, group_window_size=5):
 
     session = get_psql_session()
     #model = SentenceTransformer(Config.EMBEDDING_MODEL_NAME, device='cuda')
-    model = OllamaEmbeddingWrapper("ryanshillington/Qwen3-Embedding-0.6B:latest")
+    model = OllamaEmbeddingWrapper(Config.EMBEDDING_MODEL_NAME)
     query_embedding = model.encode(query)[0]
     
     del model
@@ -145,15 +146,68 @@ def search_by_query(query, num_matches=5, group_window_size=5):
 
     return get_surrounding_sentences(entry_ids=entry_ids, file_names=file_names, group_window_size=group_window_size, session=session)
 
+import time
+import resource
+import subprocess
+import re
+
+import time
+import resource
+import subprocess
+import threading
+
+class WSLGPUMonitor(threading.Thread):
+    def __init__(self, interval=0.05):
+        super().__init__()
+        self.interval = interval
+        self.stopped = False
+        self.baseline_vram = self._get_vram()
+        self.peak_vram = self.baseline_vram
+
+    def _get_vram(self):
+        try:
+            # Hämtar aktuellt VRAM från Windows
+            result = subprocess.run(
+                ['nvidia-smi.exe', '--query-gpu=memory.used', '--format=csv,nounits,noheader'],
+                stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True
+            )
+            if result.returncode == 0:
+                return float(result.stdout.strip())
+        except Exception:
+            pass
+        return 0.0
+
+    def run(self):
+        while not self.stopped:
+            current = self._get_vram()
+            if current > self.peak_vram:
+                self.peak_vram = current
+            time.sleep(self.interval)
+
+    def stop(self):
+        self.stopped = True
+
+# ==========================================
+
+
 
 if __name__=="__main__":
+
+    # --- 1. STARTA MÄTNINGAR ---
+    gpu_tracker = WSLGPUMonitor(interval=0.02) # Mäter var 20:e millisekund
+    gpu_tracker.start()
+    start_time = time.perf_counter()
+    
+    #---------------
 
     query = "Tell me about children's rights in Germany."
     
     if len(sys.argv) > 1:
         query = sys.argv[1]
 
+
     context = search_by_query(query)
+    
 
     #print (f"query: {query}")
     #print (f"context: {context}")
@@ -179,8 +233,32 @@ Question:
 """
     response = chat(
         #model='mistral:7b-instruct-q4_K_M',
-        model='deepseek-r1:1.5b',
+        model=Config.REASONING_MODEL_NAME,
         messages=[{'role': 'user', 'content': prompt}]
     )
+    
 
     print(response.message.content)
+
+    #-----------------------------
+
+    # --- 2. STOPPA MÄTNINGAR ---
+    elapsed_time = time.perf_counter() - start_time
+    gpu_tracker.stop()
+    gpu_tracker.join()
+
+    # Hämta CPU och RAM från Ubuntu
+    usage = resource.getrusage(resource.RUSAGE_SELF)
+    peak_ram_mb = usage.ru_maxrss / 1024
+    total_cpu_time = usage.ru_utime + usage.ru_stime
+
+    # Beräkna hur mycket VRAM ditt skript faktiskt lade till
+    vram_used_by_script = max(0.0, gpu_tracker.peak_vram - gpu_tracker.baseline_vram)
+
+    # --- 3. PRESENTERA RESULTAT ---
+    print("\n📊 === RESURSUTNYTTJANDE ===")
+    print(f"⏱️  Tid förfluten:         {elapsed_time:.4f} sekunder")
+    print(f"💻 Total CPU-tid:        {total_cpu_time:.4f} sekunder")
+    print(f"🧠 Max RAM-minne (Host):  {peak_ram_mb:.2f} MB")
+    print(f"📟 Total VRAM-topp (GPU): {gpu_tracker.peak_vram:.2f} MB")
+    print(f"📈 VRAM allokerat av kod: {vram_used_by_script:.2f} MB")
