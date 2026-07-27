@@ -36,36 +36,40 @@ def populate_vector_db(folder_path):
     session.commit
     #model = SentenceTransformer(Config.EMBEDDING_MODEL_NAME, device="cuda")
     model = OllamaEmbeddingWrapper(Config.EMBEDDING_MODEL_NAME)
-    for file_name in os.listdir(folder_path):        
-        try:
+    files = os.listdir(folder_path)
+    total = len(files)
 
+    for index, file_name in enumerate(files, start=1):
+        try:
             if file_name.endswith('.txt'):
                 file_path = os.path.join(folder_path, file_name)
                 with open(file_path, 'r', encoding='utf-8') as f:
                     content = f.read()
                     save_vector(session, model, file_name, content)
-                
+
             if file_name.endswith('.pdf'):
-                file_path = os.path.join(folder_path, file_name)           
+                file_path = os.path.join(folder_path, file_name)
                 with fitz.open(file_path) as f:
                     content = ""
                     for page in f:
                         content += page.get_text() + "\n"
                     save_vector(session, model, file_name, content)
-            
+
             if file_name.endswith((".png", ".jpg", ".jpeg", ".tiff", ".bmp", ".gif")):
-                file_path = os.path.join(folder_path, file_name)           
-                with fitz.open(file_path) as f:
-                    img = Image.open(file_path)
-                    content = pytesseract.image_to_string(img)
-                    save_vector(session, model, file_name, content)
+                file_path = os.path.join(folder_path, file_name)
+                img = Image.open(file_path)
+                content = pytesseract.image_to_string(img)
+                save_vector(session, model, file_name, content)
+
+            print(f"Processed file {index} of {total}")
 
         except Exception as e:
-                    print(f"Error processing {file_name}: {str(e)}")
-                    #session.rollback()
-                    continue
+            print(f"Error processing {file_name}: {str(e)}")
+            continue
+
     session.close()
     return
+
 
 def save_vector(session, model, file_name, content):
     sentences = sent_tokenize(content)
@@ -78,7 +82,11 @@ def save_vector(session, model, file_name, content):
     session.commit()
     print(f"Inserted embeddings for {file_name} into the database.")
 
+import time
+
 if __name__=="__main__":
+
+    start_time = time.perf_counter()
 
     folderpath = "all_articles"
     
@@ -87,3 +95,7 @@ if __name__=="__main__":
     
 
     populate_vector_db("./"+folderpath)
+    
+    elapsed_time = time.perf_counter() - start_time
+    print(f"⏱️  Tid förfluten:         {elapsed_time:.4f} sekunder")
+    

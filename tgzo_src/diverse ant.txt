@@ -25,3 +25,8 @@ BAAI/bge-m3: This is the absolute best choice for your needs. It supports over 1
 intfloat/multilingual-e5-base: This is a highly efficient, lightweight alternative. It maps English and Swedish meanings into the same vector space flawlessly and uses under 1.5GB of VRAM, leaving plenty of room for your system.
 
 testar bge-m3 genom ollama pull bge-m3 (kom ihåg att ollama registry ofta har sina kortnamn, så enklast att surfa in på deras library o söka)
+
+hmm, trodde inte att mina mätningar stämde, ffa VRAM max av mina 8GB (ja, det är INTE 6GB), ca 1300MB max, men det bekräftas faktiskt av nvidia-smi.exe dmon i cmd i win
+
+populate verkar ta ca 2h att köra
+

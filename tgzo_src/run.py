@@ -1,5 +1,6 @@
 # Check if a matches context window overlaps with another matches context window.
 import gc
+import os
 import sys
 import sys
 import time
@@ -200,14 +201,22 @@ if __name__=="__main__":
     
     #---------------
 
-    query = "Tell me about children's rights in Germany."
-    
+    #query = "What is the most prolific area of human rights transgressions in Asia?"
+    # om man söker på förekomst typ ordmoln bland artiklarna så är det ?"
+    #query = "Why where the thai woodcutters killed?"
+    # vi förväntar oss ett svar i stil med: "They were mistaken for terrorists"
+
+    query = "Varför dödades de thailändska skogshuggarna?"
+
     if len(sys.argv) > 1:
         query = sys.argv[1]
 
 
+    # Force embeddings to CPU
+    os.environ["OLLAMA_NUM_GPU"] = "0"
     context = search_by_query(query)
-    
+    # reset to use GPU for reasoning model
+    os.environ["OLLAMA_NUM_GPU"] = "1"
 
     #print (f"query: {query}")
     #print (f"context: {context}")
@@ -222,6 +231,8 @@ if __name__=="__main__":
     prompt = f"""
 You are a retrieval-augmented assistant.
 
+Answer in the same language as the question.
+
 Use ONLY the context below to answer the question.
 If the answer is not in the context, say "I don't know."
 
@@ -234,7 +245,10 @@ Question:
     response = chat(
         #model='mistral:7b-instruct-q4_K_M',
         model=Config.REASONING_MODEL_NAME,
-        messages=[{'role': 'user', 'content': prompt}]
+        messages=[{'role': 'user', 'content': prompt}],
+        stream=False, # ska vara mer lightweight,
+        #extra_body={"chat_template_kwargs" : {"enable_thinking": False}} # tror det bara är för qwen 3.5 - nej, funkar inte: got an unexpected keyword argument 'extra_body
+
     )
     
 
